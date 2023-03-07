@@ -4,9 +4,23 @@ const cors = require("cors");
 
 const { Database } = require("./config/mongo.config");
 const baseRoutes = require("./routes/base.routes");
-const errorHandler = require("./middleware/error-handler");
+const errorHandler = require("./middleware/error-handler.middleware");
 
-const database = new Database();
+const mongoUrl = process.env.MONGO_URL;
+
+if (!mongoUrl) {
+    console.error("MONGO_URL not specified in environment");
+    process.exit(1);
+}
+
+const database = new Database({
+    mongoUrl,
+    onStartConnection: () => console.info("Connecting to the database"),
+    onConnectionSuccess: () => console.info(`Successfully connected to the database`),
+    onConnectionError: (error) => console.error("Could not connect to the database at", error),
+    onConnectionRetry: () => console.info("Retrying to connect to the database"),
+});
+
 const app = express();
 
 // parse json request body
@@ -30,7 +44,7 @@ database.connect();
 app.use("/", baseRoutes);
 
 // fallback
-app.use((req, res, next) => {
+app.use("*", (req, res, next) => {
     const error = new Error("Endpoint Not found");
     error.status = 404;
     next(error);
