@@ -8,6 +8,6 @@ if (env === "PROD" || env === "DEV") {
     exports.handler = serverless(app);
 } else {
     app.listen(port, () => {
-        console.log(`ReaderScout Info Server is listening on port ${port}`);
+        console.log(`ReaderScout Core Server is listening on port ${port}`);
     });
 }
