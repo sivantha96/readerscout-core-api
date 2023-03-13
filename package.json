@@ -6,7 +6,11 @@
     "scripts": {
         "start": "nodemon index.js",
         "format": "npx prettier --write .",
-        "lint": "npx eslint --ext .js . --fix"
+        "lint": "npx eslint --ext .js . --fix",
+        "migrate:status": "npx migrate-mongo status",
+        "migrate:up": "npx migrate-mongo up",
+        "migrate:down": "npx migrate-mongo down",
+        "migrate:create": "echo 'Enter description using underscores (_)' && read description && npx migrate-mongo create $description"
     },
     "repository": {
         "type": "git",
