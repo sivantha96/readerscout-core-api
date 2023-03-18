@@ -2,7 +2,7 @@
 
 # Deployment
 
-Remove the `node_modules` folder and the `.env` file.
+Remove the `node_modules` folder, `migrations` folder and the `.env` file.
 
 Install the production-only packages
 
