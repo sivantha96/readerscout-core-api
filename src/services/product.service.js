@@ -28,6 +28,7 @@ class ProductService extends CommonService {
             }),
             authors: product.authors,
             cover: product.main_image?.link,
+            manual: true,
         });
     }
 

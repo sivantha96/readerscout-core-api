@@ -8,18 +8,18 @@ const { validateAsin } = require("../utils/validations");
 
 exports.getUserWatchlist = async (req, res, next) => {
     try {
-        const filter = { user: req.user._id };
+        const user = req.user;
+        const filter = { user: user._id };
         const watchlist = await watchItemService.find(filter, "product");
 
-        if (req.user.scheduled) {
-            await watchItemService.resetNotificationsOfUser(req.user._id);
-            await userService.findByIdAndUpdate(req.user._id, { scheduled: false });
+        if (user.scheduled_for_notification_clear) {
+            await watchItemService.resetNotificationsOfUser(user._id);
+            await userService.findByIdAndUpdate(user._id, {
+                scheduled_for_notification_clear: false,
+            });
         }
 
-        return sendSuccessResponse(res, {
-            userId: req.user.hash,
-            watchList: watchlist,
-        });
+        return sendSuccessResponse(res, watchlist);
     } catch (error) {
         return next(error);
     }
@@ -33,7 +33,7 @@ exports.addToUserWatchlist = async (req, res, next) => {
         const watchlist = await watchItemService.find({ user: req.user._id });
 
         if (watchlist.length === 5) {
-            return new UnprocessableEntityException("Watchlist limit reached");
+            throw new UnprocessableEntityException("Watchlist limit reached");
         }
 
         // check if the product is already in the db
@@ -75,13 +75,15 @@ exports.addToUserWatchlist = async (req, res, next) => {
                 );
 
                 // add the updated product to the requesting user's watchlist and return
-                return watchItemService.addToWatchlist(updatedProduct, req.user);
+                const result = watchItemService.addToWatchlist(updatedProduct, req.user);
+                return sendSuccessResponse(res, result);
             }
 
             // there are no new changes
             // therefore no need to update the other user's watch lists
             // add the found product to the requesting user's watchlist and return
-            return watchItemService.addToWatchlist(foundProduct, req.user);
+            const result = watchItemService.addToWatchlist(foundProduct, req.user);
+            return sendSuccessResponse(res, result);
         }
 
         // new product
@@ -89,9 +91,9 @@ exports.addToUserWatchlist = async (req, res, next) => {
         const savedProduct = await productService.saveProduct(product);
 
         // add the saved product to the requesting user's watchlist and return
-        const results = await watchItemService.addToWatchlist(savedProduct, req.user);
+        const result = await watchItemService.addToWatchlist(savedProduct, req.user);
 
-        sendSuccessResponse(res, results);
+        return sendSuccessResponse(res, result);
     } catch (error) {
         return next(error);
     }
@@ -99,7 +101,7 @@ exports.addToUserWatchlist = async (req, res, next) => {
 
 exports.updateWatchItem = async (req, res, next) => {
     try {
-        const asin = validateAsin(req.body);
+        const { asin } = req.body;
 
         // get the product
         const foundProduct = await productService.findOne({ asin });
@@ -131,12 +133,12 @@ exports.updateWatchItem = async (req, res, next) => {
 
         // check if the book of the watch item has been updated recently or not
         const lastModifiedDate = new Date(foundProduct.last_modified_on);
-        // TODO: temporally setting it to half an hour
-        const oneDayInMS = 1 * 30 * 60 * 1000;
+
+        const timePeriod = 1 * 60 * 60 * 1000; // one hour to the past is checked
         const timeDiff = Date.now() - lastModifiedDate.getTime();
 
         // do not update from rainforest if its not older than one day
-        if (timeDiff < oneDayInMS) return sendSuccessResponse(res);
+        if (timeDiff < timePeriod) return sendSuccessResponse(res);
 
         // if the time difference is larger than one day
         // update the product from rainforest

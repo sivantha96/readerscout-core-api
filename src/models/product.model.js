@@ -19,6 +19,7 @@ const SProduct = new mongoose.Schema({
     link: String,
     authors: mongoose.Schema.Types.Mixed,
     cover: String,
+    manual: Boolean,
 });
 
 const Product = mongoose.model(DB_COLLECTIONS.PRODUCTS, SProduct);

@@ -17,7 +17,7 @@ class GoogleService {
             const res = await axios.get(url, options);
             return res.data;
         } catch (error) {
-            throw new UnauthorizedException();
+            return null;
         }
     }
 }

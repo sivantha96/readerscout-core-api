@@ -19,4 +19,8 @@ module.exports = {
         SCHEDULAR_API: process.env.SCHEDULAR_API,
         CONVERT_KIT_API: "https://api.convertkit.com/v3",
     },
+    PROVIDERS: {
+        GOOGLE: "GOOGLE",
+        AMAZON: "AMAZON",
+    },
 };

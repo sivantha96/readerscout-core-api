@@ -23,6 +23,9 @@
     },
     "homepage": "https://github.com/sivantha96/readerscout-api#readme",
     "dependencies": {
+        "ajv": "^8.12.0",
+        "ajv-errors": "^3.0.0",
+        "ajv-formats": "^2.1.1",
         "axios": "^1.3.4",
         "cors": "^2.8.5",
         "dotenv": "^16.0.3",

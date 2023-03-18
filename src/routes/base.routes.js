@@ -2,6 +2,9 @@ const express = require("express");
 const router = express.Router();
 
 const { checkGoogleAuth } = require("../middleware/check-auth.middleware");
+const validateBody = require("../middleware/validate-body.middleware");
+
+const watchlistSchema = require("../schema/watchlist.schema");
 
 const watchlistController = require("../controllers/watchlist.controller");
 const rainforestController = require("../controllers/rainforest.controller");
@@ -22,6 +25,7 @@ router.put(
 router.patch(
     "/",
     checkGoogleAuth({ allowAuthFromUserId: true }),
+    validateBody(watchlistSchema.updateWatchItem),
     watchlistController.updateWatchItem
 );
 
