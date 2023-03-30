@@ -1,4 +1,4 @@
-exports.updateWatchItem = {
+exports.asinBody = {
     type: "object",
     properties: {
         asin: {

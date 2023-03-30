@@ -8,11 +8,20 @@ const watchlistSchema = require("../schema/watchlist.schema");
 
 router.get("/", checkAuth(), watchlistController.getUserWatchlist);
 
+
+router.post(
+    "/",
+    checkAuth(),
+    validateBody(watchlistSchema.asinBody),
+    watchlistController.addToUserWatchlist
+);
+
 router.patch(
     "/:id",
     checkAuth(),
-    validateBody(watchlistSchema.updateWatchItem),
+    validateBody(watchlistSchema.asinBody),
     watchlistController.updateWatchItem
 );
 
+ 
 module.exports = router;

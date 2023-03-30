@@ -25,7 +25,7 @@ router.put(
 router.patch(
     "/",
     checkGoogleAuth({ allowAuthFromUserId: true }),
-    validateBody(watchlistSchema.updateWatchItem),
+    validateBody(watchlistSchema.asinBody),
     watchlistController.updateWatchItem
 );
 
