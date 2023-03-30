@@ -39,7 +39,7 @@ class ProductService extends CommonService {
             title: product.title,
             rating: product.rating,
             ratings_total: product.ratings_total,
-            price: product.buybox_winner?.price,
+            ...(product.buybox_winner?.price ? {  price: product.buybox_winner.price}: {}),
             bestsellers_rank: product.bestsellers_rank,
             last_modified_on: new Date(),
             link: setParamsToURL(product.link, {
@@ -82,7 +82,7 @@ class ProductService extends CommonService {
 
         const hasRatingUpdate =
             newRatingTotal?.toString() !== foundProduct.ratings_total?.toString();
-        const hasPriceUpdate = newPriceValue?.toString() !== foundProduct.price?.value?.toString();
+        const hasPriceUpdate = newPriceValue && newPriceValue?.toString() !== foundProduct.price?.value?.toString();
 
         return [hasRatingUpdate, hasPriceUpdate];
     }
