@@ -5,6 +5,7 @@ const { googleService } = require("../services/google.service");
 const { userService } = require("../services/user.service");
 const { wordpressService } = require("../services/wordpress.service");
 const { getHash } = require("../utils");
+const jwt = require("jsonwebtoken");
 
 exports.checkGoogleAuth = ({ allowAuthFromUserId, allow }) => {
     return async (req, res, next) => {
@@ -35,7 +36,10 @@ exports.checkGoogleAuth = ({ allowAuthFromUserId, allow }) => {
                 // user does not exist
                 // not using the userId but using the google auth
                 // therefore create the user
-                requestUser = await userService.create({ hash, provider: PROVIDERS.GOOGLE });
+                requestUser = await userService.create({
+                    hash,
+                    provider: PROVIDERS.GOOGLE,
+                });
 
                 await convertKitService.subscribeToNewsLetter(userInfo.email);
 
@@ -57,26 +61,6 @@ exports.checkGoogleAuth = ({ allowAuthFromUserId, allow }) => {
     };
 };
 
-exports.checkAmazonAuth = () => {
-    return async (req, res, next) => {
-        try {
-            // get the request user
-            const requestUser = await userService.findOne({ hash: req.headers.authorization });
-
-            if (!requestUser) {
-                // should not create users when using the userId
-                if (req.query.userId) throw new UnauthorizedException();
-            }
-
-            req.user = requestUser;
-
-            next();
-        } catch (error) {
-            next(error);
-        }
-    };
-};
-
 exports.checkAuth = () => {
     return async (req, res, next) => {
         try {
@@ -84,13 +68,23 @@ exports.checkAuth = () => {
                 throw new UnauthorizedException("Provider is required");
             }
 
+            // get the request user
+            if (!req.headers.authorization) throw new UnauthorizedException();
+
             let requestUser;
             if (req.headers.provider === PROVIDERS.AMAZON) {
-                // get the request user
-                if (!req.headers.authorization) throw new UnauthorizedException();
-
+                // if the provider is amazon then the token is coming as a bearer token
                 const [, token] = req.headers.authorization.split(" ");
-                requestUser = await userService.findOne({ hash: token });
+
+                let decoded;
+
+                try {
+                    decoded = jwt.verify(token, process.env.JWT_SECRET);
+                } catch (error) {
+                    throw new UnauthorizedException();
+                }
+
+                requestUser = await userService.findOne({ hash: decoded.hash });
             } else {
                 const userInfo = await googleService.getUserInfo(req.headers.authorization);
 

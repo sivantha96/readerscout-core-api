@@ -1,10 +1,13 @@
 const { UnauthorizedException } = require("../common/exceptions");
-const { PROVIDERS } = require("../constants");
+const jwt = require("jsonwebtoken");
+const { PROVIDERS, ERRORS } = require("../constants");
 const { googleService } = require("../services/google.service");
 const { userService } = require("../services/user.service");
 const { watchListService } = require("../services/watch-list.service");
 const { getHash } = require("../utils");
 const { sendSuccessResponse } = require("../utils/response-handler");
+const { convertKitService } = require("../services/convert-kit.service");
+const { wordpressService } = require("../services/wordpress.service");
 
 exports.convertUserToAmazon = async (req, res, next) => {
     try {
@@ -29,11 +32,14 @@ exports.convertUserToAmazon = async (req, res, next) => {
                 count: req.body.author.followers_count,
                 updated_on: new Date(),
             },
+            google_hash: req.user.hash,
         });
 
         await watchListService.createNewBooksAndAddToWatchlist(req.body.books, updatedUser);
 
-        return sendSuccessResponse(res, { token: hash });
+        const token = jwt.sign({ hash }, process.env.JWT_SECRET);
+
+        return sendSuccessResponse(res, { token });
     } catch (error) {
         return next(error);
     }
@@ -57,20 +63,27 @@ exports.registerWithAmazon = async (req, res, next) => {
                 },
             });
 
-            return sendSuccessResponse(res, {
-                token: foundUser.hash,
-            });
+            const token = jwt.sign({ hash: foundUser.hash }, process.env.JWT_SECRET);
+
+            return sendSuccessResponse(res, { token });
         }
 
         const newUser = await userService.create({
             hash,
             provider: PROVIDERS.AMAZON,
             hide_author_suggestion: true,
+            profile_picture: req.body.author.profile_picture,
+            followers_count: {
+                count: req.body.author.followers_count,
+                updated_on: new Date(),
+            },
         });
 
         await watchListService.createNewBooksAndAddToWatchlist(req.body.books, newUser);
 
-        return sendSuccessResponse(res, { token: newUser.hash });
+        const token = jwt.sign({ hash: newUser.hash }, process.env.JWT_SECRET);
+
+        return sendSuccessResponse(res, { token });
     } catch (error) {
         return next(error);
     }
@@ -78,9 +91,20 @@ exports.registerWithAmazon = async (req, res, next) => {
 
 exports.login = async (req, res, next) => {
     try {
-        // check if the token is a hashed author id or not
+        // check if the token is valid jwt or not
 
-        let foundUser = await userService.findOne({ hash: req.body.token });
+        let decoded;
+        try {
+            decoded = jwt.verify(req.body.token, process.env.JWT_SECRET);
+        } catch (err) {
+            decoded = null;
+        }
+
+        let foundUser;
+        if (decoded) {
+            foundUser = await userService.findOne({ hash: decoded.hash });
+        }
+
         if (foundUser) {
             const { scheduled_for_notification_clear, ...data } = foundUser.toObject();
             return sendSuccessResponse(res, data);
@@ -96,11 +120,35 @@ exports.login = async (req, res, next) => {
         foundUser = await userService.findOne({ hash });
 
         if (foundUser) {
+            if (foundUser.provider !== PROVIDERS.GOOGLE) {
+                throw new UnauthorizedException(ERRORS.REGISTERED_WITH_ANOTHER_PROVIDER);
+            }
             const { scheduled_for_notification_clear, ...data } = foundUser.toObject();
             return sendSuccessResponse(res, data);
         }
 
-        throw new UnauthorizedException();
+        foundUser = await userService.findOne({ google_hash: hash });
+        if (foundUser) {
+            if (foundUser.provider !== PROVIDERS.GOOGLE) {
+                throw new UnauthorizedException(ERRORS.REGISTERED_WITH_ANOTHER_PROVIDER);
+            }
+            const { scheduled_for_notification_clear, ...data } = foundUser.toObject();
+            return sendSuccessResponse(res, data);
+        }
+
+        const newUser = await userService.create({
+            hash,
+            provider: PROVIDERS.GOOGLE,
+        });
+
+        // subscribe to newsletter
+        await convertKitService.subscribeToNewsLetter(userInfo.email);
+
+        // push the user to the wordpress side
+        await wordpressService.createUser(hash);
+
+        const { scheduled_for_notification_clear, ...data } = newUser.toObject();
+        return sendSuccessResponse(res, data);
     } catch (error) {
         return next(error);
     }

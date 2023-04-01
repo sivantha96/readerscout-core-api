@@ -28,6 +28,7 @@ const SUser = new mongoose.Schema({
         default: false,
     },
     profile_picture: String,
+    google_hash: String,
     name: String,
 });
 
