@@ -29,4 +29,6 @@ router.patch(
 
 router.patch("/author-link-suggestion", checkAuth(), userController.dismissAuthorLinkSuggestion);
 
+router.delete("/notifications", checkAuth(), userController.clearNotifications);
+
 module.exports = router;

@@ -179,7 +179,7 @@ exports.updateWatchItem = async (req, res, next) => {
 exports.removeWatchItem = async (req, res, next) => {
     try {
         const filter = {
-            _id: req.query?.id,
+            _id: req.query?.id || req.params?.id,
             user: req.user._id,
         };
 

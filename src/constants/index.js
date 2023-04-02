@@ -9,7 +9,6 @@ module.exports = {
         CONVERT_KIT_ERROR: "CONVERT_KIT_ERROR",
         RAINFOREST_ERROR: "RAINFOREST_ERROR",
         SCHEDULAR_ERROR: "SCHEDULAR_ERROR",
-        REGISTERED_WITH_ANOTHER_PROVIDER: "REGISTERED_WITH_ANOTHER_PROVIDER",
     },
     URLS: {
         GOOGLE_OAUTH: "https://www.googleapis.com/oauth2/v3/userinfo",

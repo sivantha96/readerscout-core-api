@@ -1,12 +1,11 @@
 const { UnauthorizedException } = require("../common/exceptions");
 const jwt = require("jsonwebtoken");
-const { PROVIDERS, ERRORS } = require("../constants");
+const { PROVIDERS } = require("../constants");
 const { googleService } = require("../services/google.service");
 const { userService } = require("../services/user.service");
 const { watchListService } = require("../services/watch-list.service");
 const { getHash } = require("../utils");
 const { sendSuccessResponse } = require("../utils/response-handler");
-const { convertKitService } = require("../services/convert-kit.service");
 const { wordpressService } = require("../services/wordpress.service");
 
 exports.convertUserToAmazon = async (req, res, next) => {
@@ -17,8 +16,21 @@ exports.convertUserToAmazon = async (req, res, next) => {
 
         if (foundUser) {
             // if the user has registered with amazon before
+
+            //  if there is no google account linked to the amazon account then link the current account to it
+            if (!foundUser.google_hash) {
+                await userService.findByIdAndUpdate(foundUser._id.toString(), {
+                    google_hash: req.user.hash,
+                });
+            }
+
+            // add the current account's books to the list if the list is not full
+            await watchListService.createNewBooksAndAddToWatchlist(req.body.books, foundUser);
+
+            const token = jwt.sign({ hash: foundUser.hash }, process.env.JWT_SECRET);
+
             return sendSuccessResponse(res, {
-                token: foundUser.hash,
+                token,
             });
         }
 
@@ -34,6 +46,8 @@ exports.convertUserToAmazon = async (req, res, next) => {
             },
             google_hash: req.user.hash,
         });
+
+        await wordpressService.createUser(hash);
 
         await watchListService.createNewBooksAndAddToWatchlist(req.body.books, updatedUser);
 
@@ -79,6 +93,8 @@ exports.registerWithAmazon = async (req, res, next) => {
             },
         });
 
+        await wordpressService.createUser(hash);
+
         await watchListService.createNewBooksAndAddToWatchlist(req.body.books, newUser);
 
         const token = jwt.sign({ hash: newUser.hash }, process.env.JWT_SECRET);
@@ -117,38 +133,20 @@ exports.login = async (req, res, next) => {
         if (!userInfo) throw new UnauthorizedException();
 
         const hash = getHash(userInfo.email);
-        foundUser = await userService.findOne({ hash });
-
-        if (foundUser) {
-            if (foundUser.provider !== PROVIDERS.GOOGLE) {
-                throw new UnauthorizedException(ERRORS.REGISTERED_WITH_ANOTHER_PROVIDER);
-            }
-            const { scheduled_for_notification_clear, ...data } = foundUser.toObject();
-            return sendSuccessResponse(res, data);
-        }
 
         foundUser = await userService.findOne({ google_hash: hash });
         if (foundUser) {
-            if (foundUser.provider !== PROVIDERS.GOOGLE) {
-                throw new UnauthorizedException(ERRORS.REGISTERED_WITH_ANOTHER_PROVIDER);
-            }
             const { scheduled_for_notification_clear, ...data } = foundUser.toObject();
             return sendSuccessResponse(res, data);
         }
 
-        const newUser = await userService.create({
-            hash,
-            provider: PROVIDERS.GOOGLE,
-        });
+        foundUser = await userService.findOne({ hash });
+        if (foundUser) {
+            const { scheduled_for_notification_clear, ...data } = foundUser.toObject();
+            return sendSuccessResponse(res, data);
+        }
 
-        // subscribe to newsletter
-        await convertKitService.subscribeToNewsLetter(userInfo.email);
-
-        // push the user to the wordpress side
-        await wordpressService.createUser(hash);
-
-        const { scheduled_for_notification_clear, ...data } = newUser.toObject();
-        return sendSuccessResponse(res, data);
+        throw new UnauthorizedException();
     } catch (error) {
         return next(error);
     }

@@ -72,36 +72,53 @@ exports.checkAuth = () => {
             if (!req.headers.authorization) throw new UnauthorizedException();
 
             let requestUser;
-            if (req.headers.provider === PROVIDERS.AMAZON) {
-                // if the provider is amazon then the token is coming as a bearer token
-                const [, token] = req.headers.authorization.split(" ");
 
-                let decoded;
+            // check amazon auth
+            const [, token] = req.headers.authorization.split(" ");
 
-                try {
-                    decoded = jwt.verify(token, process.env.JWT_SECRET);
-                } catch (error) {
-                    throw new UnauthorizedException();
-                }
+            let decoded;
 
+            try {
+                decoded = jwt.verify(token, process.env.JWT_SECRET);
+            } catch (error) {
+                decoded = null;
+            }
+
+            if (decoded) {
                 requestUser = await userService.findOne({ hash: decoded.hash });
-            } else {
-                const userInfo = await googleService.getUserInfo(req.headers.authorization);
-
-                if (!userInfo) throw new UnauthorizedException();
-
-                const hash = getHash(userInfo.email);
-
-                requestUser = await userService.findOne({ hash });
             }
 
-            if (!requestUser) {
-                throw new UnauthorizedException();
+            if (requestUser) {
+                // auth from amazon jwt
+                req.user = requestUser;
+                return next();
             }
 
-            req.user = requestUser;
+            const userInfo = await googleService.getUserInfo(req.headers.authorization);
 
-            next();
+            if (!userInfo) throw new UnauthorizedException();
+
+            const hash = getHash(userInfo.email);
+
+            requestUser = await userService.findOne({ hash });
+
+            if (requestUser) {
+                // auth from google token but does not have a amazon author account
+                req.user = requestUser;
+                return next();
+            }
+
+            // try to find the user from google_hash
+
+            requestUser = await userService.findOne({ google_hash: hash });
+
+            if (requestUser) {
+                // auth from google token but does not have a amazon author account
+                req.user = requestUser;
+                return next();
+            }
+
+            throw new UnauthorizedException();
         } catch (error) {
             next(error);
         }

@@ -8,7 +8,6 @@ const watchlistSchema = require("../schema/watchlist.schema");
 
 router.get("/", checkAuth(), watchlistController.getUserWatchlist);
 
-
 router.post(
     "/",
     checkAuth(),
@@ -23,5 +22,6 @@ router.patch(
     watchlistController.updateWatchItem
 );
 
- 
+router.delete("/:id", checkAuth(), watchlistController.removeWatchItem);
+
 module.exports = router;
