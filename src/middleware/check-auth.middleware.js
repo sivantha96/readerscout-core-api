@@ -47,11 +47,6 @@ exports.checkGoogleAuth = ({ allowAuthFromUserId, allow }) => {
                 await wordpressService.createUser(hash);
             }
 
-            // allow only if the provider is google
-            if (requestUser.provider !== PROVIDERS.GOOGLE) {
-                throw new UnauthorizedException();
-            }
-
             req.user = requestUser;
 
             next();
