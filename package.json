@@ -10,7 +10,8 @@
         "migrate:status": "npx migrate-mongo status",
         "migrate:up": "npx migrate-mongo up",
         "migrate:down": "npx migrate-mongo down",
-        "migrate:create": "echo 'Enter description using underscores (_)' && read description && npx migrate-mongo create $description"
+        "migrate:create": "echo 'Enter description using underscores (_)' && read description && npx migrate-mongo create $description",
+        "version": "npm version patch && git push --tags"
     },
     "repository": {
         "type": "git",
