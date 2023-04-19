@@ -10,7 +10,7 @@ exports.getUserWatchlist = async (req, res, next) => {
     try {
         const user = req.user;
         const filter = { user: user._id };
-        const watchlist = await watchItemService.find(filter, "product");
+        const watchList = await watchItemService.find(filter, "product");
 
         if (user.scheduled_for_notification_clear) {
             await watchItemService.resetNotificationsOfUser(user._id);
@@ -19,7 +19,11 @@ exports.getUserWatchlist = async (req, res, next) => {
             });
         }
 
-        return sendSuccessResponse(res, watchlist);
+        const payload = {
+            userId: user.hash,
+            watchList,
+        }
+        return sendSuccessResponse(res, payload);
     } catch (error) {
         return next(error);
     }
