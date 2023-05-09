@@ -22,7 +22,7 @@ exports.getUserWatchlist = async (req, res, next) => {
         const payload = {
             userId: user.hash,
             watchList,
-        }
+        };
         return sendSuccessResponse(res, payload);
     } catch (error) {
         return next(error);

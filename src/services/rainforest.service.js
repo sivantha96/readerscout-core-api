@@ -35,9 +35,7 @@ class RainforestService {
             const res = await axios.get(url);
             const requests = res.data;
             requests.forEach((request) => {
-                if (request.success) {
-                    allResults.push(request.result);
-                }
+                allResults.push(request);
             });
         });
 

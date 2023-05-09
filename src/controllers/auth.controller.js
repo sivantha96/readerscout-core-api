@@ -17,7 +17,7 @@ exports.convertUserToAmazon = async (req, res, next) => {
         if (foundUser) {
             // if the user has registered with amazon before
 
-            // TODO: handle connecting the google account 
+            // TODO: handle connecting the google account
 
             //  if there is no google account linked to the amazon account then link the current account to it
             if (!foundUser.google_hash) {
